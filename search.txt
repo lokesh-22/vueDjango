@@ -1,0 +1,138 @@
+<template>
+    <div class="search-page">
+      <section class="hero is-primary is-small">
+        <div class="hero-body">
+          <div class="container">
+            <h1 class="title">Search Products</h1>
+            <h2 class="subtitle">Find the best products here!</h2>
+          </div>
+        </div>
+      </section>
+  
+      <section class="section">
+        <div class="container">
+          <div class="field has-addons">
+            <div class="control is-expanded">
+              <input class="input" type="text" v-model="query" placeholder="Search for products...">
+            </div>
+            <div class="control">
+              <button class="button is-info" @click="searchProducts">Search</button>
+            </div>
+          </div>
+          
+          <div class="columns is-multiline" v-if="results.length">
+            <div class="column is-4" v-for="product in results" :key="product.id">
+              <div class="card">
+                <div class="card-image">
+                  <figure class="image is-4by3">
+                    <img :src="product.get_image" alt="Product image">
+                  </figure>
+                </div>
+                <div class="card-content">
+                  <div class="media">
+                    <div class="media-content">
+                      <p class="title is-4">{{ product.name }}</p>
+                      <p class="subtitle is-6">${{ product.price }}</p>
+                    </div>
+                  </div>
+                  <div class="content">
+                    {{ product.description }}
+                  </div>
+                </div>
+                <footer class="card-footer">
+                  <router-link :to="product.get_absolute_url" class="card-footer-item">View</router-link>
+                  <a @click="addToCart(product)" class="card-footer-item">Add to Cart</a>
+                </footer>
+              </div>
+            </div>
+          </div>
+  
+          <p v-else-if="noResults">No results found for "{{ query }}".</p>
+          <p v-if="error">{{ error }}</p>
+        </div>
+      </section>
+    </div>
+  </template>
+  
+  <script>
+  import axios from 'axios';
+  import { toast } from 'bulma-toast';
+  
+  export default {
+    name: 'Search',
+    
+    data() {
+      return {
+        query: '',
+        results: [],
+        error: '',
+        noResults: false,
+      };
+    },
+    methods: {
+      async searchProducts() {
+        if (!this.query) {
+          this.error = 'Please enter a search query.';
+          return;
+        }
+  
+        this.$store.commit('setLoading', true);
+        this.error = '';
+        this.noResults = false;
+  
+        try {
+          const response = await axios.get(`/api/v1/products/search/?q=${this.query}`);
+          this.results = response.data;
+          if (this.results.length === 0) {
+            this.noResults = true;
+          }
+        } catch (error) {
+          this.error = 'An error occurred while searching for products.';
+          console.error(error);
+        }
+  
+        this.$store.commit('setLoading', false);
+      },
+      addToCart(product) {
+        this.$store.commit('addToCart', {
+          product: product,
+          quantity: 1,
+        });
+  
+        toast({
+          message: 'Product added to cart',
+          type: 'is-success',
+          dismissible: true,
+          pauseOnHover: true,
+          duration: 2000,
+          position: 'bottom-right',
+        });
+      },
+    },
+  };
+  </script>
+  
+  <style scoped>
+  .search-page .hero {
+    padding: 2rem 1.5rem;
+  }
+  
+  .search-page .title {
+    font-size: 2.5rem;
+  }
+  
+  .search-page .input {
+    margin-bottom: 1rem;
+  }
+  
+  .columns {
+    margin-top: 2rem;
+  }
+  
+  p {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #b5b5b5;
+  }
+  </style>
+  
